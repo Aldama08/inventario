@@ -1,16 +1,17 @@
 FROM php:8.2-apache
 
-# 1. Instalar extensiones de PHP y herramientas del sistema (zip/unzip para Composer)
+# 1. Instalar extensiones de PHP y herramientas del sistema (Añadido Soporte MySQLi y MariaDB/MySQL)
 RUN apt-get update && apt-get install -y \
     libicu-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    libpq-dev \
     zip \
     unzip \
     git \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install intl gd pdo pdo_mysql
+    && docker-php-ext-install intl gd pdo pdo_mysql pdo_pgsql pgsql mysqli
 
 # 2. Instalar Composer copiando el binario oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -30,8 +31,7 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # 6. Instalar las dependencias de Composer
-# Usamos --no-dev si es para producción, u omítelo si necesitas herramientas de desarrollo en la otra PC
 RUN composer install --no-interaction --optimize-autoloader
 
-# 7. Dar permisos correctos a las carpetas de almacenamiento (importante hacerlo DESPUÉS del composer install)
+# 7. Dar permisos correctos a las carpetas de almacenamiento
 RUN chown -R www-data:www-data /var/www/html

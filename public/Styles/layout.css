@@ -1,0 +1,102 @@
+/* Reseteo del body para el Layout */
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh; /* Ocupa exactamente el 100% de la pantalla */
+    overflow: hidden; /* Bloquea el scroll global de la página */
+    background-color: #f4f6f8;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Contenedor principal flex */
+.app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* -----------------------------
+   TOPBAR (Navegación Superior)
+-------------------------------- */
+.topbar {
+    background-color: #1e293b;
+    color: white;
+    height: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    flex-shrink: 0; /* Evita que la barra se aplaste */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 10; /* La mantiene por encima del contenido */
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #64748b;
+    border-radius: 50%;
+}
+
+/* -----------------------------
+   CUERPO DEL LAYOUT (Sidebar + Slot)
+-------------------------------- */
+.layout-body {
+    display: flex;
+    flex: 1; /* Toma el espacio restante debajo del topbar */
+    overflow: hidden; /* Evita que el contenedor se desborde */
+}
+
+/* -----------------------------
+   SIDEBAR (Menú Lateral)
+-------------------------------- */
+.sidebar {
+    width: 240px;
+    background-color: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    padding: 24px 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar li a {
+    display: block;
+    padding: 12px 24px;
+    text-decoration: none;
+    color: #475569;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.sidebar li a:hover {
+    background-color: #f1f5f9;
+}
+
+.sidebar li.active a {
+    background-color: #f0f7ff;
+    color: #23527c;
+    border-right: 4px solid #23527c;
+}
+
+/* -----------------------------
+   EL SLOT (Donde va el contenido)
+-------------------------------- */
+.view-slot {
+    flex: 1; /* Toma todo el ancho disponible a la derecha del sidebar */
+    padding: 40px;
+    overflow-y: auto; /* Habilita el scroll SOLO dentro de este contenedor */
+    position: relative; 
+}

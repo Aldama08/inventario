@@ -11,3 +11,6 @@ services:
       - /var/www/html/vendor
     environment:
       - CI_ENVIRONMENT=development
+    dns:
+    - 8.8.8.8
+    - 8.8.4.4

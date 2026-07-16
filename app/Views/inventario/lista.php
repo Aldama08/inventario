@@ -19,8 +19,7 @@
             <table class="table table-hover table-bordered align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID Lote</th>
-                        <th>Tipo de Caja</th>
+                        <th style="width: 80px;">ID</th> <th>ID Lote</th> <th>Tipo de Caja</th>
                         <th>Cajas Disponibles</th>
                         <th>Total Botellas</th>
                         <th>Acciones</th>
@@ -30,7 +29,10 @@
                     <?php if (!empty($inventario) && is_array($inventario)): ?>
                         <?php foreach ($inventario as $lote): ?>
                             <tr>
-                                <td><strong><?= esc($lote['id_lote']) ?></strong></td>
+                                <td><strong><?= esc($lote['id_interno']) ?></strong></td>
+                                
+                                <td><?= esc($lote['codigo_lote']) ?></td>
+                                
                                 <td>
                                     <?php if ($lote['tipo_de_caja'] == 24): ?>
                                         <span class="badge bg-dark">24 Botellas</span>
@@ -39,12 +41,14 @@
                                     <?php endif; ?>
                                 </td>
                                 <td><?= esc($lote['cantidad_cajas']) ?></td>
+                                
                                 <td><?= esc($lote['cantidad_cajas'] * $lote['tipo_de_caja']) ?></td>
+                                
                                 <td>
-                                    <a href="<?= base_url('inventario/editar/' . esc($lote['id_lote'])) ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <a href="<?= base_url('inventario/editar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <a href="<?= base_url('inventario/eliminar/' . esc($lote['id_lote'])) ?>" class="btn btn-sm btn-outline-danger" title="Dar de baja" onclick="return confirm('¿Seguro que deseas eliminar este lote?');">
+                                    <a href="<?= base_url('inventario/eliminar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-danger" title="Dar de baja" onclick="return confirm('¿Seguro que deseas eliminar este lote?');">
                                         <i class="bi bi-box-arrow-right"></i>
                                     </a>
                                 </td>

@@ -14,8 +14,11 @@
 
                     <div class="row mb-3">
                         <div class="col-md-6">
+                            <label for="id_interno" class="form-label">ID (Interno)</label>
+                            <input type="text" class="form-control mb-2" id="id_interno" placeholder="Autogenerado por el sistema" disabled>
+                            
                             <label for="id_lote" class="form-label">ID de Lote</label>
-                            <input type="text" class="form-control" id="id_lote" name="id_lote" placeholder="Ej. L-2026-10A" required>
+                            <input type="text" class="form-control" id="id_lote" name="id_lote" placeholder="Se generará automáticamente" readonly required>
                         </div>
                         <div class="col-md-6">
                             <label for="fecha_ingreso" class="form-label">Fecha de Ingreso</label>
@@ -52,4 +55,36 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fechaInput = document.getElementById('fecha_ingreso');
+    const tipoCajaSelect = document.getElementById('tipo_de_caja');
+    const cantidadCajasInput = document.getElementById('cantidad_cajas');
+    const idLoteInput = document.getElementById('id_lote');
+
+    function generarCodigoLote() {
+        const fecha = fechaInput.value; 
+        const tipoCaja = parseInt(tipoCajaSelect.value) || 0;
+        const cantidadCajas = parseInt(cantidadCajasInput.value) || 0;
+
+        if (fecha && tipoCaja && cantidadCajas) {
+            // Remueve los guiones de la fecha (ej: 2026-07-16 -> 20260716)
+            const fechaLimpia = fecha.replace(/-/g, "");
+            const totalBotellas = tipoCaja * cantidadCajas;
+            
+            // Asigna el formato final acordado
+            idLoteInput.value = `${fechaLimpia}-${totalBotellas}B`;
+        } else {
+            idLoteInput.value = '';
+        }
+    }
+
+    // Escuchar eventos en los tres campos
+    fechaInput.addEventListener('change', generarCodigoLote);
+    tipoCajaSelect.addEventListener('change', generarCodigoLote);
+    cantidadCajasInput.addEventListener('input', generarCodigoLote);
+});
+</script>
+
 <?= $this->endSection() ?>

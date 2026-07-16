@@ -26,7 +26,7 @@ class Inventario extends BaseController
         $inventarioModel = new InventarioModel();
 
         $datos = [
-            'id_lote'          => $this->request->getPost('id_lote'),
+            'codigo_lote'          => $this->request->getPost('id_lote'),
             'tipo_de_caja'     => $this->request->getPost('tipo_de_caja'),
             'cantidad_cajas'   => $this->request->getPost('cantidad_cajas'),
             'fecha_ingreso'    => $this->request->getPost('fecha_ingreso'),

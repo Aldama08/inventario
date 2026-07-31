@@ -13,13 +13,22 @@
     </div>
 <?php endif; ?>
 
+<?php if (session()->getFlashdata('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <?= session()->getFlashdata('error') ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
 <div class="card shadow-sm">
     <div class="card-body">
         <div class="table-responsive">
             <table class="table table-hover table-bordered align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th style="width: 80px;">ID</th> <th>ID Lote</th> <th>Tipo de Caja</th>
+                        <th style="width: 80px;">ID</th> 
+                        <th>ID Lote</th> 
+                        <th>Presentación / Cupo</th>
                         <th>Cajas Disponibles</th>
                         <th>Total Botellas</th>
                         <th>Acciones</th>
@@ -28,26 +37,59 @@
                 <tbody>
                     <?php if (!empty($inventario) && is_array($inventario)): ?>
                         <?php foreach ($inventario as $lote): ?>
+                            <?php 
+                                // Extrae el total de botellas desde el código de lote
+                                $partesLote = explode('-', $lote['codigo_lote'] ?? '');
+                                $totalBotellas = isset($partesLote[1]) ? (int)$partesLote[1] : 0;
+                                
+                                // Calcula cuántas piezas vienen por caja
+                                $cajas = (int)($lote['cantidad_cajas'] ?? 1);
+                                $piezasPorCaja = ($cajas > 0) ? ($totalBotellas / $cajas) : 12;
+                            ?>
                             <tr>
                                 <td><strong><?= esc($lote['id_interno']) ?></strong></td>
                                 
                                 <td><?= esc($lote['codigo_lote']) ?></td>
                                 
                                 <td>
-                                    <?php if ($lote['tipo_de_caja'] == 24): ?>
-                                        <span class="badge bg-dark">24 Botellas</span>
+                                    <strong>Presentación: <?= esc($lote['presentacion_cupo']) ?></strong>
+                                    <br>
+                                    <?php if ($piezasPorCaja == 24): ?>
+                                        <span class="badge bg-dark">24 Botellas/Caja</span>
                                     <?php else: ?>
-                                        <span class="badge bg-secondary">12 Botellas</span>
+                                        <span class="badge bg-secondary">12 Botellas/Caja</span>
                                     <?php endif; ?>
                                 </td>
+
                                 <td><?= esc($lote['cantidad_cajas']) ?></td>
                                 
-                                <td><?= esc($lote['cantidad_cajas'] * $lote['tipo_de_caja']) ?></td>
+                                <td><?= esc($totalBotellas) ?></td>
                                 
                                 <td>
+                                    <a href="<?= base_url('inventario/arrendar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-dark" title="Arrendar de este lote">
+                                    <i class="bi bi-shop"></i>
+                                    </a>
+                                    <!-- Previsualizar y Enviar Correo -->
+                                    <a href="<?= base_url('inventario/previsualizar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-success" title="Previsualizar y Enviar">
+                                        <i class="bi bi-envelope"></i>
+                                    </a>
+
+                                    <!-- Subir PDF Original (Admin) -->
+                                    <a href="<?= base_url('inventario/subir/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-warning" title="Subir PDF Original (Admin)">
+                                        <i class="bi bi-file-earmark-arrow-up"></i>
+                                    </a>
+
+                                    <!-- Panel de Gestión y Firma (Cliente) -->
+                                    <a href="<?= base_url('inventario/documento/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-success" title="Panel de Gestión y Firma (Cliente)">
+                                        <i class="bi bi-file-earmark-check"></i>
+                                    </a>
+
+                                    <!-- Editar -->
                                     <a href="<?= base_url('inventario/editar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-primary" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+
+                                    <!-- Eliminar -->
                                     <a href="<?= base_url('inventario/eliminar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-danger" title="Dar de baja" onclick="return confirm('¿Seguro que deseas eliminar este lote?');">
                                         <i class="bi bi-box-arrow-right"></i>
                                     </a>

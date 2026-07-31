@@ -20,6 +20,7 @@
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('/') ?>">Menú Principal</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('inventario/entrada') ?>">Levantar Inventario</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('inventario') ?>">Inventario</a></li>
+                    <li class="nav-item"><a class="nav-link text-white" href="<?= base_url('arrendamientos') ?>">Arrendamientos</a></li>    
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('cotizaciones') ?>">Cotizaciones</a></li>
                     <li class="nav-item"><a class="nav-link" href="<?= base_url('historial') ?>">Historial</a></li>
                 </ul>

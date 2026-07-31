@@ -13,8 +13,9 @@ class Inventario extends Model
 
     protected $allowedFields = [
         'codigo_lote',
-        'tipo_de_caja',
+        'presentacion_cupo',
         'cantidad_cajas',
+        'costo_por_carton',
         'fecha_ingreso',
         'observaciones'
     ];

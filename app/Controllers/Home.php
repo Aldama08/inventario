@@ -8,29 +8,36 @@ class Home extends BaseController
     {
         $db = \Config\Database::connect();
 
-        // 1. Contar Lotes Activos (Filas totales en la tabla inventario)
+        // 1. Total de lotes activos
         $lotesActivos = $db->table('inventario')->countAllResults();
 
-        // 2. Sumar Cajas de 12
-        $cajas12 = $db->table('inventario')
-                      ->selectSum('cantidad_cajas')
-                      ->where('tipo_de_caja', 12)
-                      ->get()
-                      ->getRow()
-                      ->cantidad_cajas ?? 0; // Si es null, pone 0
+        // 2. Obtener todos los registros de inventario
+        $inventario = $db->table('inventario')->get()->getResultArray();
 
-        // 3. Sumar Cajas de 24
-        $cajas24 = $db->table('inventario')
-                      ->selectSum('cantidad_cajas')
-                      ->where('tipo_de_caja', 24)
-                      ->get()
-                      ->getRow()
-                      ->cantidad_cajas ?? 0;
+        $cajas12 = 0;
+        $cajas24 = 0;
 
-        // 4. Movimientos de Hoy (Por ahora dejamos un valor simulado de 0 hasta que manejes la tabla historial)
-        $movimientosHoy = 0; 
+        // 3. Procesar cada lote para saber si es de 12 o 24 botellas
+        foreach ($inventario as $lote) {
+            $cantidadCajas = (int) ($lote['cantidad_cajas'] ?? 0);
+            $codigoLote    = $lote['codigo_lote'] ?? '';
 
-        // Empaquetamos todo en el arreglo $data para inyectarlo a la vista
+            // Extrae el total de botellas del código de lote (ej. "260720-000120" -> 120)
+            $partesLote = explode('-', $codigoLote);
+            $totalBotellas = isset($partesLote[1]) ? (int) $partesLote[1] : 0;
+
+            // Calcula cuántas piezas tiene cada caja
+            $piezasPorCaja = ($cantidadCajas > 0) ? ($totalBotellas / $cantidadCajas) : 12;
+
+            if ($piezasPorCaja == 24) {
+                $cajas24 += $cantidadCajas;
+            } else {
+                $cajas12 += $cantidadCajas;
+            }
+        }
+
+        $movimientosHoy = 0;
+
         $data = [
             'lotes_activos'   => $lotesActivos,
             'cajas_12'        => $cajas12,

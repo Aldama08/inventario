@@ -10,7 +10,7 @@
             </div>
             
             <div class="card-body">
-                <p class="text-muted mb-4">Así es exactamente como el destinatario verá la tabla en su correo electrónico:</p>
+                <!-- <p class="text-muted mb-4">Así es exactamente como el destinatario verá la tabla en su correo electrónico:</p> -->
 
                 <?php 
                     // Extraer total de botellas del código de lote (ej. "260720-000120" -> 120)

@@ -3,99 +3,12 @@
 namespace App\Controllers;
 
 use App\Models\Inventario as InventarioModel;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 
 class Inventario extends BaseController
 {
-
-    public function arrendamientoGeneral()
-    {
-        $db = \Config\Database::connect();
-        $query = $db->query("SELECT presentacion_cupo, SUM(cantidad_cajas) as total_cajas FROM inventario WHERE cantidad_cajas > 0 GROUP BY presentacion_cupo");
-        $data['stock_global'] = $query->getResultArray();
-
-        return view('inventario/arrendamiento_general', $data);
-    }
-
-    public function procesarArrendamientoGeneral()
-    {
-        $presentacion = $this->request->getPost('presentacion_cupo');
-        $cajas_solicitadas = (int) $this->request->getPost('cajas_a_arrendar');
-        $precio_arrendamiento = $this->request->getPost('precio_arrendamiento');
-        $observaciones = $this->request->getPost('observaciones');
-
-        $inventarioModel = new InventarioModel();
-
-        $lotes = $inventarioModel->where('presentacion_cupo', $presentacion)
-                                 ->where('cantidad_cajas >', 0)
-                                 ->orderBy('fecha_ingreso', 'ASC')
-                                 ->orderBy('id_interno', 'ASC')
-                                 ->findAll();
-
-        $total_disponible = 0;
-        foreach ($lotes as $l) {
-            $total_disponible += (int)$l['cantidad_cajas'];
-        }
-
-        if ($cajas_solicitadas > $total_disponible) {
-            return redirect()->back()->with('error', "No hay suficientes cajas. Solicitaste $cajas_solicitadas pero solo hay $total_disponible en total.");
-        }
-
-        $cajas_restantes_por_descontar = $cajas_solicitadas;
-
-        foreach ($lotes as $lote) {
-            if ($cajas_restantes_por_descontar <= 0) {
-                break; 
-            }
-
-            $stock_lote = (int)$lote['cantidad_cajas'];
-
-            if ($stock_lote <= $cajas_restantes_por_descontar) {
-                $cajas_restantes_por_descontar -= $stock_lote;
-                $inventarioModel->update($lote['id_interno'], ['cantidad_cajas' => 0]);
-            } else {
-                $nuevo_stock = $stock_lote - $cajas_restantes_por_descontar;
-                $inventarioModel->update($lote['id_interno'], ['cantidad_cajas' => $nuevo_stock]);
-                $cajas_restantes_por_descontar = 0; // Pedido completado
-            }
-        }
-
-        return redirect()->to('inventario')->with('mensaje', "Arrendamiento de $cajas_solicitadas cajas de $presentacion registrado exitosamente.");
-    }
-
-    public function procesarArrendamiento()
-    {
-        $id_interno = $this->request->getPost('id_interno');
-        $cajas_a_arrendar = (int) $this->request->getPost('cajas_a_arrendar');
-        $precio_arrendamiento = $this->request->getPost('precio_arrendamiento');
-        $observaciones = $this->request->getPost('observaciones');
-
-        $inventarioModel = new InventarioModel();
-        $lote = $inventarioModel->find($id_interno);
-
-        if ($lote) {
-            $stock_actual = (int) $lote['cantidad_cajas'];
-
-            // Validar que no intente arrendar más de lo que hay
-            if ($cajas_a_arrendar > $stock_actual) {
-                return redirect()->back()->with('error', 'No puedes arrendar más cajas de las que hay disponibles en el lote.');
-            }
-
-            // Calculamos el nuevo stock restando lo arrendado
-            $nuevo_stock = $stock_actual - $cajas_a_arrendar;
-
-            // Actualizamos el lote en la base de datos
-            $inventarioModel->update($id_interno, [
-                'cantidad_cajas' => $nuevo_stock
-            ]);
-
-            // NOTA: Si en el futuro creas una tabla de 'historial_arrendamientos',
-            // aquí es donde harías el insert con el $precio_arrendamiento y las $observaciones.
-
-            return redirect()->to('inventario')->with('mensaje', 'Arrendamiento registrado y descontado del inventario exitosamente.');
-        }
-
-        return redirect()->to('inventario')->with('error', 'Ocurrió un error al procesar el arrendamiento.');
-    }
+    // 1. ENTRADA Y VISUALIZACIÓN DE MERCANCÍA
 
     public function lista()
     {
@@ -146,8 +59,170 @@ class Inventario extends BaseController
         return redirect()->to('inventario')->with('mensaje', 'Lote(s) registrado(s) correctamente.');
     }
 
-    // --- CARGA DE VISTAS PARA ARCHIVOS ---
-    
+    // 2. ARRENDAMIENTO, DESCUENTO Y ENVÍO HTML
+
+    public function arrendamientoGeneral()
+    {
+        $db = \Config\Database::connect();
+        $query = $db->query("SELECT presentacion_cupo, SUM(cantidad_cajas) as total_cajas FROM inventario WHERE cantidad_cajas > 0 GROUP BY presentacion_cupo");
+        $data['stock_global'] = $query->getResultArray();
+
+        return view('inventario/arrendamiento_general', $data);
+    }
+
+    public function procesarArrendamientoGeneral()
+    {
+        $presentaciones = $this->request->getPost('presentaciones') ?? [];
+        $cantidades     = $this->request->getPost('cantidades') ?? [];
+        
+        $precio_arrendamiento = $this->request->getPost('precio_arrendamiento');
+        $observaciones        = $this->request->getPost('observaciones');
+
+        $inventarioModel = new InventarioModel();
+
+        // 1. Filtrar productos a arrendar
+        $items_solicitados = [];
+        for ($i = 0; $i < count($presentaciones); $i++) {
+            $cant = (int)$cantidades[$i];
+            if ($cant > 0) {
+                $items_solicitados[] = [
+                    'presentacion' => $presentaciones[$i],
+                    'cantidad'     => $cant
+                ];
+            }
+        }
+
+        if (empty($items_solicitados)) {
+            return redirect()->back()->with('error', 'Debes ingresar al menos una cantidad mayor a 0 para procesar el arrendamiento.');
+        }
+
+        // 2. Descuento FIFO por lote en la BD
+        foreach ($items_solicitados as $item) {
+            $lotes = $inventarioModel->where('presentacion_cupo', $item['presentacion'])
+                                     ->where('cantidad_cajas >', 0)
+                                     ->orderBy('fecha_ingreso', 'ASC')
+                                     ->orderBy('id_interno', 'ASC')
+                                     ->findAll();
+            
+            $cajas_restantes_por_descontar = $item['cantidad'];
+
+            foreach ($lotes as $lote) {
+                if ($cajas_restantes_por_descontar <= 0) {
+                    break;
+                }
+
+                $stock_lote = (int)$lote['cantidad_cajas'];
+
+                if ($stock_lote <= $cajas_restantes_por_descontar) {
+                    $cajas_restantes_por_descontar -= $stock_lote;
+                    $inventarioModel->update($lote['id_interno'], ['cantidad_cajas' => 0]);
+                } else {
+                    $nuevo_stock = $stock_lote - $cajas_restantes_por_descontar;
+                    $inventarioModel->update($lote['id_interno'], ['cantidad_cajas' => $nuevo_stock]);
+                    $cajas_restantes_por_descontar = 0; 
+                }
+            }
+        }
+
+        // 3. Pasar datos a la vista de previsualización para envío de correo
+        session()->setFlashdata('salida_datos', [
+            'items' => $items_solicitados,
+            'precio_total' => $precio_arrendamiento,
+            'observaciones' => $observaciones
+        ]);
+
+        return redirect()->to('arrendamientos/previsualizarSalida');
+    }
+
+    public function previsualizarSalida()
+    {
+        $salida = session()->getFlashdata('salida_datos');
+
+        if (!$salida) {
+            return redirect()->to('inventario')->with('error', 'No hay datos de salida recientes para previsualizar.');
+        }
+
+        session()->setFlashdata('salida_datos', $salida);
+
+        return view('inventario/previsualizar_salida', $salida);
+    }
+
+    public function enviarCorreoSalida()
+    {
+        $correo_destino = $this->request->getPost('correo_destino');
+        $presentaciones = $this->request->getPost('presentacion') ?? [];
+        $cantidades     = $this->request->getPost('cantidad_carton') ?? [];
+        $costos         = $this->request->getPost('costo_carton') ?? [];
+
+        $items = [];
+        for ($i = 0; $i < count($presentaciones); $i++) {
+            $items[] = [
+                'presentacion'    => $presentaciones[$i],
+                'cantidad_carton' => $cantidades[$i],
+                'costo_carton'    => $costos[$i]
+            ];
+        }
+
+        $datosCorreo = [
+            'items' => $items,
+            'fecha' => date('d/m/Y')
+        ];
+
+       //HTML como un string
+        $cuerpoHtml = view('inventario/salida_inventario', $datosCorreo);
+
+
+        //Configuramos e inicializamos Dompdf
+        $options = new Options();
+        $options->set('isRemoteEnabled', true); 
+        
+        $dompdf = new Dompdf($options);
+        
+        $dompdf->loadHtml($cuerpoHtml);
+        $dompdf->setPaper('A4', 'portrait'); 
+        $dompdf->render();
+
+        //Guardamos el PDF temporalmente en tu carpeta uploads
+        $output = $dompdf->output();
+        $nombre_pdf = 'Reporte_Salida_' . time() . '.pdf';
+        
+        // Definimos la ruta de la carpeta
+        $directorio_destino = FCPATH . 'uploads/';
+
+        // Verificamos si la carpeta no existe, y si sí, la creamos con permisos de escritura
+        if (!is_dir($directorio_destino)) {
+            mkdir($directorio_destino, 0777, true);
+        }
+        
+        $ruta_temporal = $directorio_destino . $nombre_pdf;
+        
+        //guardamos el archivo 
+        file_put_contents($ruta_temporal, $output);
+
+        // Correo con el archivo adjunto
+        $emailService = \Config\Services::email();
+        $emailService->setTo($correo_destino);
+        $emailService->setSubject('Reporte de Salida / Formato de Arrendamiento');
+        
+        $emailService->setMessage('Hola. Adjunto a este correo encontrarás el formato de arrendamiento correspondiente a la salida de inventario en formato PDF.');
+        $emailService->setMailType('text');
+        
+        $emailService->attach($ruta_temporal);
+
+        // Enviamos y limpiamos el archivo temporal
+        if ($emailService->send()) {
+            unlink($ruta_temporal);
+            return redirect()->to('inventario')->with('mensaje', 'El formato de salida ha sido generado en PDF y enviado exitosamente al cliente.');
+        } else {
+            if (file_exists($ruta_temporal)) {
+                unlink($ruta_temporal);
+            }
+            return redirect()->to('inventario')->with('error', 'Hubo un problema al intentar enviar el correo con el PDF.');
+        }
+    }   
+
+    //GESTIÓN DE ARCHIVOS PDF Y FIRMAS
+
     public function subirArchivo($id_interno)
     {
         $inventarioModel = new InventarioModel();
@@ -172,8 +247,6 @@ class Inventario extends BaseController
         return view('inventario/panel_documento', $data);
     }
 
-    // --- PROCESAMIENTO DE SUBIDA DE PDFS ---
-
     public function procesarArchivo()
     {
         $id_interno = $this->request->getPost('id_interno');
@@ -194,7 +267,7 @@ class Inventario extends BaseController
         if ($archivo->isValid() && !$archivo->hasMoved()) {
             $nuevoNombre = $archivo->getRandomName();
 
-            // Guarda en public/uploads/
+            // Guardar dentro del proyecto en public/uploads/
             $archivo->move(FCPATH . 'uploads', $nuevoNombre);
 
             $inventarioModel = new InventarioModel();
@@ -228,7 +301,7 @@ class Inventario extends BaseController
         if ($archivo->isValid() && !$archivo->hasMoved()) {
             $nuevoNombre = 'FIRMADO_' . $archivo->getRandomName();
 
-            // Guarda en public/uploads/
+            // Guardar dentro del proyecto public/uploads/
             $archivo->move(FCPATH . 'uploads', $nuevoNombre);
 
             $inventarioModel = new InventarioModel();
@@ -241,46 +314,4 @@ class Inventario extends BaseController
 
         return redirect()->back()->with('error', 'Ocurrió un error al guardar el archivo.');
     }
-
-    // --- CORREO Y PREVISUALIZACIÓN ---
-
-    public function previsualizar($id_interno = null)
-    {
-        $inventarioModel = new InventarioModel();
-        $data['lote'] = $inventarioModel->find($id_interno);
-
-        if (!$data['lote']) {
-            return redirect()->to('inventario')->with('error', 'No existe el registro.');
-        }
-
-        return view('inventario/previsualizar', $data);
-    }
-
-    public function enviarCorreo()
-    {
-        $id_interno = $this->request->getPost('id_interno');
-        $correo_destino = $this->request->getPost('correo_destino');
-
-        $inventarioModel = new InventarioModel();
-        $lote = $inventarioModel->find($id_interno);
-
-        if ($lote) {
-            $emailService = \Config\Services::email();
-            
-            $cuerpoCorreo = view('inventario/salida_inventario', $lote);
-
-            $emailService->setTo($correo_destino);
-            $emailService->setSubject('Reporte de Salida - Lote: ' . $lote['codigo_lote']);
-            $emailService->setMessage($cuerpoCorreo);
-            $emailService->setMailType('html');
-
-            if ($emailService->send()) {
-                return redirect()->to('inventario')->with('mensaje', 'El formato de salida ha sido enviado exitosamente.');
-            } else {
-                return redirect()->to('inventario')->with('error', 'Hubo un problema al intentar enviar el correo.');
-            }
-        }
-
-        return redirect()->to('inventario')->with('error', 'Registro no encontrado.');
-    }
-}
+}   

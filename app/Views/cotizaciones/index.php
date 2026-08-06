@@ -15,21 +15,20 @@
                     <th>Cliente</th>
                     <th>Detalle (Cajas)</th>
                     <th>Monto Estimado</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+                    <!-- <th>Acciones</th> -->
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>COT-001</td>
+                    <td>001</td>
                     <td>Distribuidora Central</td>
                     <td>10 x Cajas (24)</td>
                     <td>$4,500.00</td>
-                    <td><span class="badge bg-warning text-dark">Pendiente</span></td>
-                    <td>
+                    <!-- <td><span class="badge bg-warning text-dark">Pendiente</span></td> -->
+                    <!-- <td>
                         <button class="btn btn-sm btn-info text-white"><i class="bi bi-eye"></i> Ver</button>
                         <button class="btn btn-sm btn-success"><i class="bi bi-check-circle"></i> Aprobar</button>
-                    </td>
+                    </td> -->
                 </tr>
             </tbody>
         </table>

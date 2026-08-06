@@ -2,7 +2,7 @@
 
 <?= $this->section('content') ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Inventario Actual</h2>
+    <h2>Inventario</h2>
     <a href="<?= base_url('inventario/entrada') ?>" class="btn btn-success"><i class="bi bi-plus-circle"></i> Nuevo Ingreso</a>
 </div>
 
@@ -31,7 +31,7 @@
                         <th>Presentación / Cupo</th>
                         <th>Cajas Disponibles</th>
                         <th>Total Botellas</th>
-                        <th>Acciones</th>
+                        <th class="text-center" style="width: 200px;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,17 +65,15 @@
                                 
                                 <td><?= esc($totalBotellas) ?></td>
                                 
-                                <td>
-                                    <a href="<?= base_url('inventario/arrendar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-dark" title="Arrendar de este lote">
-                                    <i class="bi bi-shop"></i>
-                                    </a>
-                                    <!-- Previsualizar y Enviar Correo -->
-                                    <a href="<?= base_url('inventario/previsualizar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-success" title="Previsualizar y Enviar">
-                                        <i class="bi bi-envelope"></i>
-                                    </a>
+                                <td class="text-center">
+                                    <div class="mb-1">
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="bi bi-box-seam"></i> En Almacén
+                                        </span>
+                                    </div>
 
-                                    <!-- Subir PDF Original (Admin) -->
-                                    <a href="<?= base_url('inventario/subir/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-warning" title="Subir PDF Original (Admin)">
+                                    <!-- Subir PDF Base (Admin) -->
+                                    <a href="<?= base_url('inventario/subir/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-warning text-white" title="Subir PDF">
                                         <i class="bi bi-file-earmark-arrow-up"></i>
                                     </a>
 
@@ -85,13 +83,13 @@
                                     </a>
 
                                     <!-- Editar -->
-                                    <a href="<?= base_url('inventario/editar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <a href="<?= base_url('inventario/editar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-primary" title="Editar Lote">
                                         <i class="bi bi-pencil"></i>
                                     </a>
 
                                     <!-- Eliminar -->
                                     <a href="<?= base_url('inventario/eliminar/' . esc($lote['id_interno'])) ?>" class="btn btn-sm btn-outline-danger" title="Dar de baja" onclick="return confirm('¿Seguro que deseas eliminar este lote?');">
-                                        <i class="bi bi-box-arrow-right"></i>
+                                        <i class="bi bi-trash"></i>
                                     </a>
                                 </td>
                             </tr>
